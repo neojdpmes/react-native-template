@@ -44,7 +44,7 @@ export default function App() {
   }, [isConnected, socket, fileQueue ])
 
   useEffect(() => {
-    if (fileQueue.length > 0 && isConnected) {
+    if (fileQueue.length > 0) {
       const { image, album } = fileQueue[fileQueue.length - 1];
       uploadFile(image, album);
     }
@@ -58,8 +58,6 @@ export default function App() {
     uploadFiles(files);
     */
     const files = await getAllFiles();
-    console.log(files);
-    console.log(files.length);
     uploadFiles(files);
   }
   
@@ -80,8 +78,11 @@ export default function App() {
 
   const uploadFile = async (image: MediaLibrary.Asset, album: MediaLibrary.Album) => {
     try {
-      console.log('Uploading', image.filename);
-      const file = await FileSystem.readAsStringAsync(image.uri, { encoding: FileSystem.EncodingType.Base64 })
+      const tempUri = FileSystem.cacheDirectory + 'temp_img';
+      await FileSystem.copyAsync({from: image.uri , to: tempUri});
+      const file = await FileSystem.readAsStringAsync(tempUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
       socket.emit('upload', { id: image.id, data: file, name: image.filename, album: album.title });
       console.log('Emitted', image.filename);
     } catch (err: any) {
@@ -110,9 +111,9 @@ export default function App() {
     let hasNext = true;
     let after;
     while (hasNext) {
-      const images: MediaLibrary.PagedInfo<MediaLibrary.Asset> = await MediaLibrary.getAssetsAsync({ after });
+      const images: MediaLibrary.PagedInfo<MediaLibrary.Asset> = await MediaLibrary.getAssetsAsync({ after, mediaType: ['video'] });
       hasNext = images.hasNextPage;
-      for (const image of images.assets) files.push({ image }); 
+      for (const image of images.assets) files.push({ image, album: { title: 'all'} }); 
       after = images.endCursor;
     }
     return files;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 
-const socket = io('ws://192.168.1.16:18092', {
+const socket = io('ws://192.168.1.18:18092', {
   transports: ['websocket']
 });
 
